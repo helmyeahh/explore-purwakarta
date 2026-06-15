@@ -1,18 +1,21 @@
-import { mockDestinations } from "@/lib/data";
+"use client";
+
+import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { ArrowLeft, Clock, Banknote, Car, Droplets, MapPin, Star, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
+import { use } from "react";
 
-// Since we are mocking, we can just use params directly as an async promise in next 15, or standard in next 14.
-// For Next.js App Router dynamic routes with latest conventions, params is a Promise.
-export default async function DestinationPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params;
-  const destination = mockDestinations.find((d) => d.id === resolvedParams.id);
+export default function DestinationPage() {
+  const params = useParams() as { id: string };
+  const { destinations } = useData();
+  
+  const destination = destinations.find((d) => d.id === params.id);
 
   if (!destination) {
-    notFound();
+    return <div className="p-8 text-center">Destination not found.</div>;
   }
 
   // Map facility names to icons roughly
@@ -43,8 +46,8 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
             referrerPolicy="no-referrer-when-downgrade"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-white/50">
-            No VR view available
+          <div className="w-full h-full flex items-center justify-center text-white/50 bg-cover bg-center" style={{ backgroundImage: `url(${destination.interactive?.main_photo || 'https://dummyimage.com/600x400/ccc/000'})` }}>
+            <div className="bg-black/40 w-full h-full flex items-center justify-center">No VR view available</div>
           </div>
         )}
         
@@ -111,7 +114,7 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
             <div className="flex-1 px-2">
               <p className="text-xs text-gray-500 font-medium mb-2 text-center">Facilities</p>
               <div className="flex justify-center gap-3 text-gray-700">
-                {destination.facilities.slice(0, 3).map((f, i) => (
+                {destination.facilities?.slice(0, 3).map((f, i) => (
                   <div key={i} title={f} className="bg-gray-50 p-1.5 rounded-md border border-gray-100">
                     {getFacilityIcon(f)}
                   </div>
@@ -122,7 +125,7 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
               <p className="text-xs text-gray-500 font-medium mb-1">Distance</p>
               <div className="flex items-center justify-center gap-1 text-[#2563EB] font-bold text-lg">
                 <MapPin className="w-5 h-5" />
-                {destination.distance}
+                {destination.distance || "2.1 km"}
               </div>
             </div>
           </CardContent>

@@ -1,15 +1,40 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { RouteMap } from "@/components/map/RouteMap";
-import { mockDestinations } from "@/lib/data";
-import { Navigation, ArrowLeft, ArrowRightLeft } from "lucide-react";
+import { useData } from "@/contexts/DataContext";
+import { AIRecommendation } from "@/lib/ai";
+import { Navigation, ArrowLeft, View } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function PlannerPage() {
-  const itinerary = [
-    { time: "08:00 AM", ...mockDestinations[0] }, // Sate Maranggi
-    { time: "11:00 AM", ...mockDestinations[1] }, // Jatiluhur
-    { time: "07:30 PM", ...mockDestinations[2] }, // Sri Baduga
-  ];
+  const router = useRouter();
+  const { destinations } = useData();
+  const [results, setResults] = useState<AIRecommendation[]>([]);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("explore_ai_result");
+    if (saved) {
+      setResults(JSON.parse(saved));
+    } else {
+      // Fallback if no wizard was run
+      if (destinations.length >= 3) {
+        setResults([
+          { destinationId: destinations[0].id, distance: "2.5 km", aiReview: "Pilihan terbaik untuk memulai hari." },
+          { destinationId: destinations[1].id, distance: "5.0 km", aiReview: "Cocok untuk bersantai di siang hari." },
+          { destinationId: destinations[2].id, distance: "1.2 km", aiReview: "Sempurna untuk mengakhiri perjalanan Anda." }
+        ]);
+      }
+    }
+  }, [destinations]);
+
+  // Map the results back to full destination objects
+  const itinerary = results.map(res => {
+    const dest = destinations.find(d => d.id === res.destinationId);
+    return dest ? { ...dest, aiRecommendation: res } : null;
+  }).filter(Boolean) as (typeof destinations[0] & { aiRecommendation: AIRecommendation })[];
 
   const markers = itinerary.map((item) => ({
     id: item.id,
@@ -17,16 +42,20 @@ export default function PlannerPage() {
     title: item.name,
   }));
 
+  const openGoogleMaps = () => {
+    alert("Navigating to Google Maps...");
+  };
+
   return (
     <main className="flex flex-col h-screen bg-[#F9FAFB]">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 shrink-0 z-20">
-        <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-700 transition-colors">
+        <button onClick={() => router.back()} className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-700 transition-colors">
           <ArrowLeft className="w-5 h-5" />
-        </Link>
+        </button>
         <div>
-          <h1 className="font-bold text-gray-900 text-lg">Your Perfect Day</h1>
-          <p className="text-xs text-gray-500">Curated by AI based on your preferences</p>
+          <h1 className="font-bold text-gray-900 text-lg">AI Recommendations</h1>
+          <p className="text-xs text-gray-500">Tailored perfectly for your mood</p>
         </div>
       </header>
 
@@ -37,50 +66,47 @@ export default function PlannerPage() {
 
       {/* Timeline Section */}
       <section className="flex-1 overflow-y-auto px-4 py-6 relative">
-        <div className="max-w-xl mx-auto space-y-6">
-          <h2 className="font-bold text-gray-900 mb-4">Itinerary Timeline</h2>
+        <div className="max-w-xl mx-auto space-y-4">
           
-          <div className="relative pl-6 space-y-8 border-l-2 border-gray-200 ml-3">
-            {itinerary.map((item, index) => (
-              <div key={item.id} className="relative">
-                {/* Timeline dot */}
-                <div className="absolute w-4 h-4 bg-[#2563EB] rounded-full -left-[35px] top-1 border-4 border-white shadow-sm" />
-                
-                <div className="mb-1">
-                  <span className="text-sm font-bold text-[#EA580C] bg-orange-50 px-2 py-0.5 rounded-md inline-block mb-2">
-                    {item.time}
-                  </span>
-                </div>
-                
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-3 group">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 leading-tight mb-1">{item.name}</h3>
-                    <p className="text-xs text-gray-500 line-clamp-2 mb-2">{item.description}</p>
-                    <div className="text-[10px] text-gray-400 font-medium bg-gray-50 px-2 py-1 rounded inline-block">
-                      Est. {item.visit_info.estimated_price}
-                    </div>
+          {itinerary.map((item, index) => (
+            <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <div className="flex gap-4">
+                <div className="w-20 h-20 rounded-xl bg-gray-200 shrink-0 bg-cover bg-center" style={{ backgroundImage: `url(${item.interactive?.main_photo || 'https://dummyimage.com/150x150/ccc/000'})` }} />
+                <div className="flex-1">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-bold text-gray-900 leading-tight">{item.name}</h3>
+                    <span className="text-xs font-bold text-[#2563EB] bg-blue-50 px-2 py-1 rounded">
+                      {item.aiRecommendation.distance}
+                    </span>
                   </div>
-                  <button className="shrink-0 self-center p-2 text-gray-400 hover:text-[#2563EB] hover:bg-blue-50 rounded-full transition-colors" title="Swap destination">
-                    <ArrowRightLeft className="w-4 h-4" />
-                  </button>
+                  <p className="text-xs text-gray-500 line-clamp-1 mb-2">{item.categories.join(", ")}</p>
+                  
+                  <div className="bg-orange-50 border border-orange-100 rounded-lg p-2 mb-3">
+                    <p className="text-xs text-[#EA580C] italic leading-tight">
+                      &quot;{item.aiRecommendation.aiReview}&quot;
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Link href={`/destination/${item.id}`} className="flex-1">
+                      <Button variant="outline" fullWidth className="py-2 text-xs h-auto">
+                        <View className="w-3 h-3 mr-1" /> Details
+                      </Button>
+                    </Link>
+                    <Button variant="primary" className="flex-1 py-2 text-xs h-auto" onClick={openGoogleMaps}>
+                      <Navigation className="w-3 h-3 mr-1" /> Route
+                    </Button>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+
         </div>
         
         {/* Spacer for fixed button */}
         <div className="h-24"></div>
       </section>
-
-      {/* Fixed Bottom Action */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent z-20">
-        <div className="max-w-xl mx-auto">
-          <Button variant="primary" icon={Navigation} fullWidth className="py-4 text-lg shadow-lg shadow-blue-500/30">
-            Start Navigation
-          </Button>
-        </div>
-      </div>
     </main>
   );
 }
