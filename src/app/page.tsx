@@ -1,35 +1,80 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { MiniMap } from "@/components/map/MiniMap";
 import { useData } from "@/contexts/DataContext";
-import { Search, MapPin, Navigation, Compass, Star, Sparkles, Map } from "lucide-react";
+import { Search, MapPin, Navigation, Compass, Star, Sparkles, Map, Flame, Utensils } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AIRecommendation } from "@/lib/ai";
 
 export default function Home() {
   const router = useRouter();
   const { destinations } = useData();
   const [searchQuery, setSearchQuery] = useState("");
+  const [aiRecs, setAiRecs] = useState<(typeof destinations[0] & { aiReview?: string })[]>([]);
+
+  useEffect(() => {
+    // Try to load last AI result from session
+    const saved = sessionStorage.getItem("explore_ai_result");
+    if (saved) {
+      const parsed = JSON.parse(saved) as AIRecommendation[];
+      const matched = parsed.map(res => {
+        const d = destinations.find(x => x.id === res.destinationId);
+        return d ? { ...d, aiReview: res.aiReview } : null;
+      }).filter(Boolean) as any[];
+      setAiRecs(matched);
+    }
+  }, [destinations]);
 
   const filteredDestinations = destinations.filter(d => 
     d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     d.categories.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  // Sorting logics
   const topRated = [...destinations].sort((a, b) => b.rating_and_reviews.average_rating - a.rating_and_reviews.average_rating).slice(0, 4);
-  const culinary = destinations.filter(d => d.categories.includes("Kuliner"));
+  const mostPopular = [...destinations].sort((a, b) => b.rating_and_reviews.total_reviews - a.rating_and_reviews.total_reviews).slice(0, 4);
+  const culinary = [...destinations].filter(d => d.categories.includes("Kuliner")).sort((a, b) => b.rating_and_reviews.average_rating - a.rating_and_reviews.average_rating).slice(0, 4);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this might go to a dedicated search results page, 
-    // but here we'll just let the list below filter dynamically.
     if(filteredDestinations.length > 0) {
       document.getElementById('search-results')?.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  const DestinationCarousel = ({ title, icon: Icon, items, isAi = false }: { title: string, icon: any, items: any[], isAi?: boolean }) => (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+          <Icon className={`w-5 h-5 ${isAi ? 'text-[#EA580C]' : 'text-[#2563EB]'}`} /> {title}
+        </h2>
+      </div>
+      <div className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-4 no-scrollbar snap-x">
+        {items.map(dest => (
+          <Link href={`/destination/${dest.id}`} key={dest.id} className="snap-start shrink-0 w-[240px]">
+            <Card className={`h-full group ${isAi ? 'border-[#EA580C]/30 shadow-orange-100' : ''}`}>
+              <div className="h-32 bg-gray-200 rounded-t-2xl relative overflow-hidden bg-cover bg-center" style={{ backgroundImage: `url(${dest.interactive?.main_photo || 'https://dummyimage.com/300x200/ccc/000'})` }}>
+                <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 text-gray-900">
+                  <Star className="w-3 h-3 text-yellow-500 fill-current" /> {dest.rating_and_reviews.average_rating}
+                </div>
+              </div>
+              <CardContent className="p-3">
+                <h3 className="font-bold text-gray-900 line-clamp-1 group-hover:text-[#2563EB]">{dest.name}</h3>
+                <p className="text-xs text-gray-500 line-clamp-1 mb-1">{dest.categories.join(" • ")}</p>
+                {isAi && dest.aiReview && (
+                  <p className="text-[10px] text-[#EA580C] italic line-clamp-2 leading-tight bg-orange-50 p-1 rounded">"{dest.aiReview}"</p>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <main className="flex-1 pb-20 bg-[#F9FAFB]">
@@ -72,7 +117,7 @@ export default function Home() {
       {/* Main Content */}
       <div className="max-w-xl mx-auto px-4 pt-8 relative z-20 space-y-10">
         
-        {/* Search Results (Visible only if typing) */}
+        {/* Search Results */}
         {searchQuery && (
           <div id="search-results" className="scroll-mt-6">
             <h2 className="text-lg font-bold mb-3 text-gray-900 flex items-center gap-2">
@@ -98,68 +143,35 @@ export default function Home() {
           </div>
         )}
 
+        {/* AI Recommendations */}
+        {!searchQuery && aiRecs.length > 0 && (
+          <DestinationCarousel title="Rekomendasi AI Anda" icon={Sparkles} items={aiRecs} isAi={true} />
+        )}
+
         {/* Top Rated Carousel */}
         {!searchQuery && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Star className="w-5 h-5 text-yellow-500" /> Paling Populer</h2>
-            </div>
-            <div className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-4 no-scrollbar snap-x">
-              {topRated.map(dest => (
-                <Link href={`/destination/${dest.id}`} key={dest.id} className="snap-start shrink-0 w-[240px]">
-                  <Card className="h-full group">
-                    <div className="h-32 bg-gray-200 rounded-t-2xl relative overflow-hidden bg-cover bg-center" style={{ backgroundImage: `url(${dest.interactive?.main_photo || 'https://dummyimage.com/300x200/ccc/000'})` }}>
-                      <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 text-gray-900">
-                        <Star className="w-3 h-3 text-yellow-500 fill-current" /> {dest.rating_and_reviews.average_rating}
-                      </div>
-                    </div>
-                    <CardContent className="p-3">
-                      <h3 className="font-bold text-gray-900 line-clamp-1 group-hover:text-[#2563EB]">{dest.name}</h3>
-                      <p className="text-xs text-gray-500 line-clamp-1">{dest.categories.join(" • ")}</p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <DestinationCarousel title="Berdasarkan Rating" icon={Star} items={topRated} />
         )}
 
         {/* Mini Interactive Map */}
         {!searchQuery && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Map className="w-5 h-5 text-[#059669]" /> Di Sekitar Anda</h2>
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Map className="w-5 h-5 text-[#059669]" /> Peta Destinasi</h2>
               <Button variant="outline" className="py-1 px-3 text-xs rounded-full h-auto">Buka Peta</Button>
             </div>
             <MiniMap />
           </div>
         )}
 
+        {/* Popular Carousel */}
+        {!searchQuery && (
+          <DestinationCarousel title="Paling Populer" icon={Flame} items={mostPopular} />
+        )}
+
         {/* Culinary Recommendations */}
         {!searchQuery && culinary.length > 0 && (
-          <div>
-            <h2 className="text-lg font-bold mb-3 text-gray-900 flex items-center gap-2">Rekomendasi Kuliner</h2>
-            <div className="flex flex-col gap-3">
-              {culinary.map((dest) => (
-                <Link href={`/destination/${dest.id}`} key={dest.id}>
-                  <Card className="group hover:border-[#2563EB]/30 transition-all duration-300">
-                    <CardContent className="flex gap-4 p-3">
-                      <div className="w-20 h-20 rounded-xl bg-gray-200 shrink-0 bg-cover bg-center" style={{ backgroundImage: `url(${dest.interactive?.main_photo || 'https://dummyimage.com/150x150/ccc/000'})` }} />
-                      <div className="flex flex-col justify-center flex-1">
-                        <div className="flex justify-between items-start mb-1">
-                          <h3 className="font-bold text-gray-900 line-clamp-1 group-hover:text-[#2563EB]">{dest.name}</h3>
-                        </div>
-                        <p className="text-xs text-gray-500 mb-2 line-clamp-1">{dest.description}</p>
-                        <div className="text-[10px] bg-green-50 text-[#059669] px-2 py-1 rounded-md font-medium inline-block w-fit">
-                          {dest.visit_info.estimated_price}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <DestinationCarousel title="Rekomendasi Kuliner" icon={Utensils} items={culinary} />
         )}
 
       </div>

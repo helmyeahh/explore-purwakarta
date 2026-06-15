@@ -17,13 +17,17 @@ const customIcon = L.icon({
 });
 
 interface PinDropMapProps {
-  initialPosition?: [number, number];
+  position: [number, number];
   onPositionChange: (lat: number, lng: number) => void;
 }
 
-export default function PinDropMap({ initialPosition = [-6.538680, 107.443150], onPositionChange }: PinDropMapProps) {
-  const [position, setPosition] = useState<L.LatLng>(new L.LatLng(initialPosition[0], initialPosition[1]));
+export default function PinDropMap({ position, onPositionChange }: PinDropMapProps) {
+  const [localPos, setLocalPos] = useState<L.LatLng>(new L.LatLng(position[0], position[1]));
   const markerRef = useRef<L.Marker>(null);
+
+  useEffect(() => {
+    setLocalPos(new L.LatLng(position[0], position[1]));
+  }, [position[0], position[1]]);
 
   const eventHandlers = useMemo(
     () => ({
@@ -31,7 +35,7 @@ export default function PinDropMap({ initialPosition = [-6.538680, 107.443150], 
         const marker = markerRef.current;
         if (marker != null) {
           const newPos = marker.getLatLng();
-          setPosition(newPos);
+          setLocalPos(newPos);
           onPositionChange(newPos.lat, newPos.lng);
         }
       },
@@ -42,17 +46,28 @@ export default function PinDropMap({ initialPosition = [-6.538680, 107.443150], 
   function MapEvents() {
     useMapEvents({
       click(e) {
-        setPosition(e.latlng);
+        setLocalPos(e.latlng);
         onPositionChange(e.latlng.lat, e.latlng.lng);
       },
     });
     return null;
   }
 
+  // To re-center the map if localPos changes drastically, we could use a custom hook, 
+  // but for simplicity, we just bind the Marker to localPos.
+  // The MapContainer's center prop only sets INITIAL center in Leaflet, so we add a map hook.
+  function UpdateCenter({ position }: { position: L.LatLng }) {
+    const map = useMapEvents({});
+    useEffect(() => {
+      map.setView(position, map.getZoom());
+    }, [position, map]);
+    return null;
+  }
+
   return (
-    <div className="w-full h-full rounded-xl overflow-hidden border border-gray-200">
+    <div className="w-full h-full rounded-xl overflow-hidden border border-gray-200 relative z-10">
       <MapContainer
-        center={position}
+        center={localPos}
         zoom={13}
         style={{ height: "100%", width: "100%", zIndex: 10 }}
       >
@@ -61,10 +76,11 @@ export default function PinDropMap({ initialPosition = [-6.538680, 107.443150], 
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapEvents />
+        <UpdateCenter position={localPos} />
         <Marker
           draggable={true}
           eventHandlers={eventHandlers}
-          position={position}
+          position={localPos}
           ref={markerRef}
           icon={customIcon}
         />

@@ -287,10 +287,40 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Lokasi Koordinat</label>
-              <div className="h-64 mb-2">
-                <PinDropMap initialPosition={[formData.latitude, formData.longitude]} onPositionChange={(lat, lng) => setFormData({...formData, latitude: lat, longitude: lng})} />
+              <label className="block text-sm font-medium mb-2 flex items-center gap-1"><MapPin className="w-4 h-4"/> Titik Koordinat Peta</label>
+              
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Latitude</label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    value={formData.latitude} 
+                    onChange={e => setFormData({...formData, latitude: Number(e.target.value)})} 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Longitude</label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    value={formData.longitude} 
+                    onChange={e => setFormData({...formData, longitude: Number(e.target.value)})} 
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" 
+                  />
+                </div>
               </div>
+
+              <div className="h-64 mb-2">
+                <PinDropMap 
+                  position={[formData.latitude, formData.longitude]} 
+                  onPositionChange={(lat, lng) => setFormData({...formData, latitude: lat, longitude: lng})}
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                Anda dapat mengetik koordinat secara manual atau menggeser pin pada peta. Titik ini akan langsung tampil di Peta Homepage.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
