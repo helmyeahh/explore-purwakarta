@@ -1,5 +1,11 @@
 import { Destination } from "./data";
 
+export interface AIRecommendation {
+  destinationId: string;
+  distance: string;
+  aiReview: string;
+}
+
 export interface AIWizardInput {
   groupSize: string;
   category: string;

@@ -1,10 +1,20 @@
 "use client";
 
-import FullscreenMapViewer from "@/components/map/FullscreenMapViewer";
+import dynamic from "next/dynamic";
 import { ArrowLeft, Map } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useData } from "@/contexts/DataContext";
+
+const FullscreenMapViewer = dynamic(() => import("@/components/map/FullscreenMapViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-gray-100 flex flex-col items-center justify-center text-gray-500 font-medium">
+      <div className="w-10 h-10 rounded-full border-4 border-gray-200 border-t-forest-primary animate-spin mb-4" />
+      Memuat peta interaktif...
+    </div>
+  )
+});
 
 export default function MapPage() {
   const router = useRouter();

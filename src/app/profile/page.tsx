@@ -105,7 +105,7 @@ export default function ProfilePage() {
 
         {user.role === 'admin' && (
           <div className="mt-8">
-            <Link href="/admin">
+            <Link href="/gcr">
               <Button fullWidth variant="accent">Masuk Dashboard Admin</Button>
             </Link>
           </div>
