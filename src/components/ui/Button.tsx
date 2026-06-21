@@ -15,13 +15,13 @@ export function Button({
   className = "",
   ...props
 }: ButtonProps) {
-  const baseStyles = "inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 active:scale-95";
+  const baseStyles = "inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium transition-all duration-300 active:scale-95";
   
   const variants = {
-    primary: "bg-[#2563EB] text-white hover:bg-[#1E3A8A] shadow-md shadow-blue-500/20",
-    secondary: "bg-[#059669] text-white hover:bg-[#047857] shadow-md shadow-green-500/20",
-    accent: "bg-[#EA580C] text-white hover:bg-[#C2410C] shadow-md shadow-orange-500/20",
-    outline: "bg-white text-gray-700 border border-gray-200 hover:border-gray-300 hover:bg-gray-50",
+    primary: "bg-forest-dark text-white hover:bg-forest-light shadow-sm",
+    secondary: "bg-forest-light text-white hover:bg-forest-dark shadow-sm",
+    accent: "bg-white text-forest-dark border border-forest-dark hover:bg-gray-50 shadow-sm",
+    outline: "bg-transparent text-forest-dark border border-forest-dark hover:bg-gray-50",
   };
 
   return (
@@ -29,7 +29,7 @@ export function Button({
       className={`${baseStyles} ${variants[variant]} ${fullWidth ? "w-full" : ""} ${className}`}
       {...props}
     >
-      {Icon && <Icon className="w-5 h-5" />}
+      {Icon && <Icon className="w-4 h-4" />}
       {children}
     </button>
   );

@@ -71,18 +71,18 @@ export default function PlannerPage() {
           {itinerary.map((item, index) => (
             <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
               <div className="flex gap-4">
-                <div className="w-20 h-20 rounded-xl bg-gray-200 shrink-0 bg-cover bg-center" style={{ backgroundImage: `url(${item.interactive?.main_photo || 'https://dummyimage.com/150x150/ccc/000'})` }} />
+                <div className="w-20 h-20 rounded-xl bg-gray-200 overflow-hidden shrink-0 relative"><img src={item.interactive?.main_photo || 'https://dummyimage.com/150x150/ccc/000'} loading="lazy" decoding="async" className="absolute inset-0 object-cover w-full h-full" alt={item.name} /></div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
                     <h3 className="font-bold text-gray-900 leading-tight">{item.name}</h3>
-                    <span className="text-xs font-bold text-[#2563EB] bg-blue-50 px-2 py-1 rounded">
+                    <span className="text-xs font-bold text-lake-blue bg-blue-50 px-2 py-1 rounded">
                       {item.aiRecommendation.distance}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 line-clamp-1 mb-2">{item.categories.join(", ")}</p>
                   
                   <div className="bg-orange-50 border border-orange-100 rounded-lg p-2 mb-3">
-                    <p className="text-xs text-[#EA580C] italic leading-tight">
+                    <p className="text-xs text-terracotta italic leading-tight">
                       &quot;{item.aiRecommendation.aiReview}&quot;
                     </p>
                   </div>

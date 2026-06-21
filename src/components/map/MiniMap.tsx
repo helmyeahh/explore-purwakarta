@@ -25,7 +25,7 @@ export function MiniMap() {
   return (
     <div className="w-full h-48 rounded-2xl overflow-hidden shadow-sm border border-gray-100 relative">
       <MapViewer center={center} zoom={12} markers={markers} interactive={false} />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-20 pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent z-20 pointer-events-none" />
     </div>
   );
 }

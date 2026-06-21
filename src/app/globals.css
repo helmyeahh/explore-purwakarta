@@ -2,22 +2,35 @@
 
 :root {
   --background: #F9FAFB;
-  --foreground: #111827;
+  --foreground: #0B1F15;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
   
-  --color-lake-blue: #2563EB;
-  --color-lake-navy: #1E3A8A;
-  --color-emerald-green: #059669;
-  --color-terracotta: #EA580C;
+  --color-forest-dark: #071B12;
+  --color-forest-light: #163A29;
+  --color-forest-primary: #0A2F1E;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Hide scrollbar for cleaner UI */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }

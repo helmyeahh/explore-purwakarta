@@ -3,53 +3,105 @@ import { Destination } from "./data";
 export interface AIWizardInput {
   groupSize: string;
   category: string;
-  mood: string;
+  mood: string[];
+  dates: string;
   location?: { lat: number; lng: number };
 }
 
-export interface AIRecommendation {
+export interface Activity {
+  time: string;
   destinationId: string;
-  distance: string;
-  aiReview: string;
+  description: string;
+}
+
+export interface DayPlan {
+  day: number;
+  title: string;
+  activities: Activity[];
+}
+
+export interface AIItinerary {
+  title: string;
+  days: DayPlan[];
 }
 
 export async function getMockAIRecommendations(
   input: AIWizardInput,
   destinations: Destination[]
-): Promise<AIRecommendation[]> {
-  // Simulate Gemini API network delay (2.5 seconds)
-  await new Promise((resolve) => setTimeout(resolve, 2500));
+): Promise<AIItinerary> {
+  // Simulate network delay
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  // In a real scenario, we'd send input to Gemini API:
-  // "I have a user at coords X. They want a place for ${input.groupSize}, category ${input.category}, mood ${input.mood}. Pick 3 from this list..."
+  // Determine number of days from input dates (e.g. "12 Okt - 14 Okt (3 Hari)")
+  let numDays = 1;
+  if (input.dates && input.dates.includes("Hari")) {
+    const match = input.dates.match(/(\d+)\s+Hari/);
+    if (match) numDays = parseInt(match[1]);
+  }
 
-  // MOCK LOGIC: Just pick up to 3 random destinations that roughly match the mood or category
-  const filtered = destinations.filter(
-    (d) =>
-      d.mood_tags.includes(input.mood) || d.categories.includes(input.category)
-  );
+  // MOCK LOGIC: pick random destinations
+  let pool = destinations;
   
-  // Fallback to all destinations if filters are too strict
-  const pool = filtered.length >= 3 ? filtered : destinations;
+  if (input.mood.length > 0) {
+    const filtered = destinations.filter(d => 
+      d.mood_tags.some(m => input.mood.includes(m))
+    );
+    if (filtered.length > 0) pool = filtered;
+  }
 
-  // Shuffle and pick 3
-  const selected = [...pool].sort(() => 0.5 - Math.random()).slice(0, 3);
+  const shuffled = [...pool].sort(() => 0.5 - Math.random());
+  
+  const days: DayPlan[] = [];
+  let destIndex = 0;
 
-  // Generate mock AI reviews based on inputs
-  return selected.map((dest, i) => {
-    let review = "";
-    if (input.mood === "Romantis") {
-      review = `Sangat cocok untuk makan malam romantis bersama pasangan. Suasananya tenang dan indah.`;
-    } else if (input.mood === "Keluarga" || input.groupSize !== "Berdua") {
-      review = `Tempat yang luas dan ramah anak. Sempurna untuk rombongan keluarga besar.`;
-    } else {
-      review = `Sesuai dengan keinginan Anda untuk bersantai. Tempat ini menawarkan pengalaman visual yang luar biasa.`;
+  for (let i = 1; i <= numDays; i++) {
+    const d1 = shuffled[destIndex % shuffled.length];
+    const d2 = shuffled[(destIndex + 1) % shuffled.length];
+    destIndex += 2;
+
+    days.push({
+      day: i,
+      title: i === 1 ? "Kedatangan & Eksplorasi Awal" : i === numDays ? "Perpisahan & Belanja" : "Petualangan Utama",
+      activities: [
+        {
+          time: "09:00",
+          destinationId: d1.id,
+          description: `Nikmati pagi hari dengan mengunjungi ${d1.name}. Sangat cocok untuk ${input.groupSize} dengan suasana ${input.mood.join(" & ") || "santai"}.`
+        },
+        {
+          time: "13:00",
+          destinationId: d2.id,
+          description: `Setelah makan siang, lanjutkan perjalanan ke ${d2.name} untuk pengalaman tak terlupakan.`
+        }
+      ]
+    });
+  }
+
+  return {
+    title: "Eksplorasi Purwakarta",
+    days
+  };
+}
+
+export async function getAIRecommendations(
+  input: AIWizardInput,
+  destinations: Destination[]
+): Promise<AIItinerary> {
+  try {
+    const res = await fetch("/api/planner", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ input, destinations }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch from real API, falling back to mock.");
     }
 
-    return {
-      destinationId: dest.id,
-      distance: dest.distance || `${(Math.random() * 10 + 1).toFixed(1)} km`,
-      aiReview: review,
-    };
-  });
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.warn("AI API failed, using mock...", err);
+    return getMockAIRecommendations(input, destinations);
+  }
 }

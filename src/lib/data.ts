@@ -20,6 +20,16 @@ export interface Interactive {
   gallery?: string[];
 }
 
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhoto?: string;
+  rating: number;
+  text: string;
+  date: string;
+}
+
 export interface Destination {
   id: string;
   name: string;
@@ -35,6 +45,9 @@ export interface Destination {
   rating_and_reviews: RatingReview;
   facilities: string[];
   distance?: string; // For mock purposes
+  reviews?: Review[];
+  status?: "pending" | "published";
+  submittedBy?: string;
 }
 
 export const mockDestinations: Destination[] = [
