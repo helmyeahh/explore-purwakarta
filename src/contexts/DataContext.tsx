@@ -63,7 +63,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [pendingContributions, setPendingContributions] = useState<Destination[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>([{ id: "admin-1", username: "heru", password: "270623" }]);
   const [loggedAdmin, setLoggedAdmin] = useState<AdminUser | null>(null);
   
   const [isLoaded, setIsLoaded] = useState(false);
