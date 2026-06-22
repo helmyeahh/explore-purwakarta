@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Destination, Review, mockDestinations } from "@/lib/data";
+import { db } from "@/lib/firebase";
+import { collection, doc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 
 export interface User {
   id: string;
@@ -61,72 +63,85 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [pendingContributions, setPendingContributions] = useState<Destination[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   
-  const [admins, setAdmins] = useState<AdminUser[]>([{ id: "admin-1", username: "heru", password: "270623" }]);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loggedAdmin, setLoggedAdmin] = useState<AdminUser | null>(null);
   
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Load from localStorage on mount
+    // Local state for UI only stuff
     const savedUser = localStorage.getItem("explore_pwk_user");
     if (savedUser) setUser(JSON.parse(savedUser));
-
-    const savedDestinations = localStorage.getItem("explore_pwk_destinations");
-    if (savedDestinations) {
-      setDestinations(JSON.parse(savedDestinations));
-    } else {
-      setDestinations(mockDestinations);
-      localStorage.setItem("explore_pwk_destinations", JSON.stringify(mockDestinations));
-    }
-
     const savedCats = localStorage.getItem("explore_pwk_cats");
     if (savedCats) setCategories(JSON.parse(savedCats));
-
     const savedMoods = localStorage.getItem("explore_pwk_moods");
     if (savedMoods) setMoodTags(JSON.parse(savedMoods));
-
     const savedLogs = localStorage.getItem("explore_pwk_logs");
     if (savedLogs) setLogs(JSON.parse(savedLogs));
-
-    const savedPending = localStorage.getItem("explore_pwk_pending");
-    if (savedPending) setPendingContributions(JSON.parse(savedPending));
-
-    const savedAdmins = localStorage.getItem("explore_pwk_admins");
-    if (savedAdmins) setAdmins(JSON.parse(savedAdmins));
-    
     const savedLoggedAdmin = localStorage.getItem("explore_pwk_logged_admin");
     if (savedLoggedAdmin) setLoggedAdmin(JSON.parse(savedLoggedAdmin));
 
+    // Firestore Realtime Listeners
+    const unsubDestinations = onSnapshot(collection(db, "destinations"), (snapshot) => {
+      if (snapshot.empty) {
+        // Seeding initial data
+        mockDestinations.forEach(async (d) => {
+          await setDoc(doc(db, "destinations", d.id), d);
+        });
+      } else {
+        const data = snapshot.docs.map(doc => doc.data() as Destination);
+        // Sort newest first based on id or just rely on Firebase (Firebase returns by doc ID usually)
+        setDestinations(data.reverse());
+      }
+    });
+
+    const unsubPending = onSnapshot(collection(db, "pending_contributions"), (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as Destination);
+      setPendingContributions(data.reverse());
+    });
+
+    const unsubAdmins = onSnapshot(collection(db, "admins"), (snapshot) => {
+      if (snapshot.empty) {
+        const initialAdmin = { id: "admin-1", username: "heru", password: "270623" };
+        setDoc(doc(db, "admins", initialAdmin.id), initialAdmin);
+      } else {
+        const data = snapshot.docs.map(doc => doc.data() as AdminUser);
+        setAdmins(data);
+      }
+    });
+
     setIsLoaded(true);
+
+    return () => {
+      unsubDestinations();
+      unsubPending();
+      unsubAdmins();
+    };
   }, []);
 
-  // Save to localStorage whenever data changes (if loaded)
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("explore_pwk_user", JSON.stringify(user));
-      localStorage.setItem("explore_pwk_destinations", JSON.stringify(destinations));
       localStorage.setItem("explore_pwk_cats", JSON.stringify(categories));
       localStorage.setItem("explore_pwk_moods", JSON.stringify(moodTags));
       localStorage.setItem("explore_pwk_logs", JSON.stringify(logs));
-      localStorage.setItem("explore_pwk_pending", JSON.stringify(pendingContributions));
-      localStorage.setItem("explore_pwk_admins", JSON.stringify(admins));
       localStorage.setItem("explore_pwk_logged_admin", JSON.stringify(loggedAdmin));
     }
-  }, [user, destinations, categories, moodTags, logs, pendingContributions, admins, loggedAdmin, isLoaded]);
+  }, [user, categories, moodTags, logs, loggedAdmin, isLoaded]);
 
-  const addDestination = (dest: Destination) => {
-    setDestinations(prev => [dest, ...prev]);
+  const addDestination = async (dest: Destination) => {
+    await setDoc(doc(db, "destinations", dest.id), dest);
     addLog(`Added new destination: ${dest.name}`);
   };
 
-  const updateDestination = (id: string, dest: Destination) => {
-    setDestinations(prev => prev.map(d => d.id === id ? dest : d));
+  const updateDestination = async (id: string, dest: Destination) => {
+    await setDoc(doc(db, "destinations", id), dest);
     addLog(`Updated destination: ${dest.name}`);
   };
 
-  const deleteDestination = (id: string) => {
+  const deleteDestination = async (id: string) => {
     const dest = destinations.find(d => d.id === id);
-    setDestinations(prev => prev.filter(d => d.id !== id));
+    await deleteDoc(doc(db, "destinations", id));
     if (dest) addLog(`Deleted destination: ${dest.name}`);
   };
 
@@ -136,24 +151,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addMoodTag = (tag: string) => setMoodTags(prev => [...prev, tag]);
   const removeMoodTag = (tag: string) => setMoodTags(prev => prev.filter(t => t !== tag));
 
-  const addReview = (destinationId: string, review: Review) => {
-    setDestinations(prev => prev.map(d => {
-      if (d.id === destinationId) {
-        const newReviews = [...(d.reviews || []), review];
-        const newTotal = (d.rating_and_reviews.total_reviews || 0) + 1;
-        const newAvg = ((d.rating_and_reviews.average_rating * d.rating_and_reviews.total_reviews) + review.rating) / newTotal;
-        return {
-          ...d,
-          reviews: newReviews,
-          rating_and_reviews: {
-            average_rating: Number(newAvg.toFixed(1)),
-            total_reviews: newTotal
-          }
-        };
-      }
-      return d;
-    }));
-    addLog(`Added review for destination ${destinationId}`);
+  const addReview = async (destinationId: string, review: Review) => {
+    const d = destinations.find(x => x.id === destinationId);
+    if (d) {
+      const newReviews = [...(d.reviews || []), review];
+      const newTotal = (d.rating_and_reviews?.total_reviews || 0) + 1;
+      const newAvg = (((d.rating_and_reviews?.average_rating || 0) * (d.rating_and_reviews?.total_reviews || 0)) + review.rating) / newTotal;
+      const updated = {
+        ...d,
+        reviews: newReviews,
+        rating_and_reviews: {
+          average_rating: Number(newAvg.toFixed(1)),
+          total_reviews: newTotal
+        }
+      };
+      await setDoc(doc(db, "destinations", d.id), updated);
+      addLog(`Added review for destination ${destinationId}`);
+    }
   };
 
   const addLog = (log: string) => {
@@ -161,25 +175,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLogs(prev => [`[${timestamp}] ${log}`, ...prev]);
   };
 
-  const addContribution = (dest: Destination) => {
-    setPendingContributions(prev => [dest, ...prev]);
+  const addContribution = async (dest: Destination) => {
+    await setDoc(doc(db, "pending_contributions", dest.id), dest);
     addLog(`Added new contribution: ${dest.name}`);
   };
 
-  const approveContribution = (id: string, editedDest?: Partial<Destination>) => {
+  const approveContribution = async (id: string, editedDest?: Partial<Destination>) => {
     const dest = pendingContributions.find(d => d.id === id);
     if (dest) {
       const finalDest = { ...dest, ...editedDest, status: "published" as const };
-      setDestinations(prev => [finalDest, ...prev]);
-      setPendingContributions(prev => prev.filter(d => d.id !== id));
+      await setDoc(doc(db, "destinations", finalDest.id), finalDest);
+      await deleteDoc(doc(db, "pending_contributions", id));
       addLog(`Approved contribution: ${finalDest.name}`);
     }
   };
 
-  const rejectContribution = (id: string) => {
+  const rejectContribution = async (id: string) => {
     const dest = pendingContributions.find(d => d.id === id);
     if (dest) {
-      setPendingContributions(prev => prev.filter(d => d.id !== id));
+      await deleteDoc(doc(db, "pending_contributions", id));
       addLog(`Rejected contribution: ${dest.name}`);
     }
   };
@@ -194,13 +208,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLoggedAdmin(null);
   };
 
-  const addAdmin = (admin: AdminUser) => {
-    setAdmins(prev => [...prev, admin]);
+  const addAdmin = async (admin: AdminUser) => {
+    await setDoc(doc(db, "admins", admin.id), admin);
     addLog(`Added new admin: ${admin.username}`);
   };
 
-  const deleteAdmin = (id: string) => {
-    setAdmins(prev => prev.filter(a => a.id !== id));
+  const deleteAdmin = async (id: string) => {
+    await deleteDoc(doc(db, "admins", id));
     addLog(`Deleted admin ID: ${id}`);
   };
 
