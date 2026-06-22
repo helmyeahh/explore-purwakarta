@@ -84,30 +84,40 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     // Firestore Realtime Listeners
     const unsubDestinations = onSnapshot(collection(db, "destinations"), (snapshot) => {
       if (snapshot.empty) {
-        // Seeding initial data
+        setDestinations(mockDestinations);
         mockDestinations.forEach(async (d) => {
-          await setDoc(doc(db, "destinations", d.id), d);
+          await setDoc(doc(db, "destinations", d.id), d).catch(console.error);
         });
       } else {
         const data = snapshot.docs.map(doc => doc.data() as Destination);
-        // Sort newest first based on id or just rely on Firebase (Firebase returns by doc ID usually)
         setDestinations(data.reverse());
       }
+    }, (error) => {
+      console.error("Firestore Destinations Error:", error);
+      setDestinations(mockDestinations); // Fallback if rules are strict
     });
 
     const unsubPending = onSnapshot(collection(db, "pending_contributions"), (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as Destination);
       setPendingContributions(data.reverse());
+    }, (error) => {
+      console.error("Firestore Pending Error:", error);
     });
 
     const unsubAdmins = onSnapshot(collection(db, "admins"), (snapshot) => {
+      const initialAdmin = { id: "admin-1", username: "heru", password: "270623" };
       if (snapshot.empty) {
-        const initialAdmin = { id: "admin-1", username: "heru", password: "270623" };
-        setDoc(doc(db, "admins", initialAdmin.id), initialAdmin);
+        setAdmins([initialAdmin]);
+        setDoc(doc(db, "admins", initialAdmin.id), initialAdmin).catch(console.error);
       } else {
         const data = snapshot.docs.map(doc => doc.data() as AdminUser);
+        // Ensure 'heru' exists just in case it was accidentally deleted or empty
+        if (!data.some(a => a.username === "heru")) data.push(initialAdmin);
         setAdmins(data);
       }
+    }, (error) => {
+      console.error("Firestore Admins Error:", error);
+      setAdmins([{ id: "admin-1", username: "heru", password: "270623" }]);
     });
 
     setIsLoaded(true);
