@@ -1,4 +1,5 @@
 export default {
+  buildCommand: "next build",
   default: {
     override: {
       wrapper: "cloudflare-node",
