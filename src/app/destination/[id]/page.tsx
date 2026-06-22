@@ -206,20 +206,9 @@ export default function DestinationPage() {
                   </div>
                 ))}
                 
-                {/* Dummy Review if empty */}
                 {(!destination.reviews || destination.reviews.length === 0) && (
-                  <div className="flex gap-5 pb-8 border-b border-gray-100">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full shrink-0" />
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center mb-1">
-                        <h4 className="font-bold text-gray-900">Budi Santoso</h4>
-                        <span className="text-xs text-gray-400">Hari ini</span>
-                      </div>
-                      <div className="flex text-yellow-400 mb-3">
-                        <Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" /><Star className="w-4 h-4 fill-current" />
-                      </div>
-                      <p className="text-gray-600 leading-relaxed">Tempat yang luar biasa! Suasananya pas untuk liburan akhir pekan. Pasti kembali lagi ke sini bersama keluarga.</p>
-                    </div>
+                  <div className="text-center py-8 text-gray-500">
+                    Belum ada ulasan untuk destinasi ini. Jadilah yang pertama memberikan ulasan!
                   </div>
                 )}
               </div>

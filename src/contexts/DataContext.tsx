@@ -181,7 +181,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           total_reviews: newTotal
         }
       };
-      await setDoc(doc(db, "destinations", d.id), updated);
+      setDestinations(prev => prev.map(x => x.id === destinationId ? updated : x)); // Optimistic UI
+      await setDoc(doc(db, "destinations", d.id), updated).catch(e => {
+        console.error(e);
+        alert("Gagal menyimpan ulasan ke database. Periksa aturan keamanan Firebase Anda.");
+      });
       addLog(`Added review for destination ${destinationId}`);
     }
   };
