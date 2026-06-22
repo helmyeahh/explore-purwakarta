@@ -389,7 +389,9 @@ export default function GCRPage() {
         {/* Content Management Tab */}
         {activeTab === "moderation" && (
           <>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+            {editMode === "none" ? (
+              <div className="animate-in fade-in duration-300">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
               <div className="relative w-full sm:w-96">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input 
@@ -406,9 +408,9 @@ export default function GCRPage() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-10">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="text-xs text-gray-500 uppercase bg-gray-50/50">
+              <div className="overflow-auto max-h-[65vh]">
+                <table className="w-full text-sm text-left relative">
+                  <thead className="text-xs text-gray-500 uppercase bg-gray-50/95 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
                     <tr>
                       <th className="px-6 py-4 font-bold">Nama Tempat</th>
                       <th className="px-6 py-4 font-bold">Status</th>
@@ -468,11 +470,11 @@ export default function GCRPage() {
                 </table>
               </div>
             </div>
-
-            {/* Active Moderation / Edit Screen */}
-            {editMode !== "none" && (
-              <div className="mb-10 animate-in slide-in-from-bottom-4 fade-in duration-500 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            </div>
+            ) : (
+            /* Active Moderation / Edit Screen */
+              <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-300 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center sticky top-0 z-20 shadow-sm backdrop-blur-md bg-white/90">
                   <h3 className="text-xl font-serif font-bold text-[#0B1F15]">
                     {editMode === "review_pending" ? "Moderasi Draf: " + selectedItem?.name : 
                      editMode === "edit_published" ? "Edit Destinasi: " + selectedItem?.name : 
@@ -480,7 +482,7 @@ export default function GCRPage() {
                   </h3>
                   <div className="flex gap-3">
                     <Button variant="outline" className="border-gray-200 text-gray-600 hover:bg-gray-100 font-bold" onClick={() => setEditMode("none")}>
-                      Batal
+                      &larr; Kembali
                     </Button>
                     <Button className="bg-forest-primary hover:bg-forest-dark text-white font-bold" onClick={handleSave}>
                       {editMode === "review_pending" ? "Setujui & Publikasi" : "Simpan Perubahan"}
