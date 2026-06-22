@@ -32,11 +32,14 @@ export async function POST(req: NextRequest) {
       - Group size: ${input.groupSize}
       - Current Mood: ${(input.mood || []).join(", ")}
       - Duration: ${numDays} days
+      - Today's Date: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      - Random Seed: ${Math.random().toString(36).substring(7)}
       
       Here is the list of available destinations in JSON:
       ${JSON.stringify(destinations.map((d: any) => ({ id: d.id, name: d.name, categories: d.categories, mood_tags: d.mood_tags })), null, 2)}
       
       Based on the user's preferences, create a ${numDays}-day itinerary.
+      CRITICAL: Ensure the itinerary feels unique and varied. Explore different and less obvious combinations of destinations to ensure the recommendations are different each time.
       For each day, select 2 destinations from the list.
       
       Return ONLY a valid JSON object matching this schema exactly (no markdown formatting, no code blocks):

@@ -157,7 +157,7 @@ export default function ContributePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Estimasi Harga (Opsional)</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Estimasi uang yang dihabiskan oleh 1 orang (Opsional)</label>
                   <input 
                     type="text" 
                     value={formData.price}

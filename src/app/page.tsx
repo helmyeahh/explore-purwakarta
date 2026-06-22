@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { MiniMap } from "@/components/map/MiniMap";
 import { useData } from "@/contexts/DataContext";
 import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
-import { Search, MapPin, Navigation, Star, Sparkles, Map, Flame, Utensils, Mountain, Droplets, HeartPulse, History, Filter, Compass } from "lucide-react";
+import { Search, MapPin, Navigation, Star, Sparkles, Map, Flame, Utensils, Mountain, Droplets, HeartPulse, History, Filter, Compass, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AIRecommendation } from "@/lib/ai";
@@ -27,6 +27,7 @@ export default function Home() {
   const [activeFilter, setActiveFilter] = useState<"Jarak" | "Harga" | "Rating" | "Populer" | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [aiRecs, setAiRecs] = useState<(typeof destinations[0] & { aiReview?: string })[]>([]);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("explore_ai_result");
@@ -147,18 +148,36 @@ export default function Home() {
     <main className="min-h-screen bg-[#F9FAFB]">
       {/* Top Navbar */}
       <nav className="absolute top-0 w-full z-50 px-6 lg:px-12 py-6 flex items-center justify-between text-white border-b border-white/10">
-        <h1 className="font-serif text-2xl font-bold tracking-tight">Explore Purwakarta</h1>
+        <h1 className="font-serif text-2xl font-bold tracking-tight z-50">Explore Purwakarta</h1>
         <div className="hidden lg:flex items-center gap-8 text-sm font-medium opacity-90">
           <Link href="/" className="hover:opacity-100 border-b border-white pb-1">Discovery</Link>
           <Link href="/wizard" className="hover:opacity-100">AI Planner</Link>
           <Link href="/map" className="hover:opacity-100">Interactive Map</Link>
           <Link href="/contribute" className="hover:opacity-100">Community</Link>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-4">
           <div className="hidden md:block"><GoogleLoginButton /></div>
           <Button onClick={() => router.push('/wizard')} className="bg-forest-primary hover:bg-forest-light text-white border border-white/20 rounded-full px-6 py-2 text-sm shadow-none">Plan Trip</Button>
         </div>
+        {/* Mobile Menu Toggle */}
+        <button className="lg:hidden z-50 p-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
       </nav>
+
+      {/* Mobile Menu Dropdown */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-forest-dark/95 backdrop-blur-sm flex flex-col items-center justify-center text-white space-y-8 lg:hidden animate-in fade-in duration-300">
+          <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="text-2xl font-serif font-bold hover:text-green-400 transition-colors">Discovery</Link>
+          <Link href="/wizard" onClick={() => setIsMobileMenuOpen(false)} className="text-2xl font-serif font-bold hover:text-green-400 transition-colors">AI Planner</Link>
+          <Link href="/map" onClick={() => setIsMobileMenuOpen(false)} className="text-2xl font-serif font-bold hover:text-green-400 transition-colors">Interactive Map</Link>
+          <Link href="/contribute" onClick={() => setIsMobileMenuOpen(false)} className="text-2xl font-serif font-bold hover:text-green-400 transition-colors">Community</Link>
+          <div className="pt-8 flex flex-col items-center gap-4 w-full px-12">
+            <GoogleLoginButton />
+            <Button onClick={() => { setIsMobileMenuOpen(false); router.push('/wizard'); }} fullWidth className="bg-forest-primary hover:bg-forest-light text-white border border-white/20 rounded-full py-4 text-lg mt-4">Plan Trip</Button>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="relative pt-40 pb-48 px-4 text-white overflow-hidden bg-forest-primary">
