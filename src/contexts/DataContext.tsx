@@ -140,18 +140,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [user, categories, moodTags, logs, loggedAdmin, isLoaded]);
 
   const addDestination = async (dest: Destination) => {
-    await setDoc(doc(db, "destinations", dest.id), dest);
+    setDestinations(prev => [dest, ...prev]); // Optimistic
+    await setDoc(doc(db, "destinations", dest.id), dest).catch(e => {
+      console.error(e);
+      alert("Peringatan: Gagal menyimpan ke Database. Periksa Firebase Security Rules Anda!");
+    });
     addLog(`Added new destination: ${dest.name}`);
   };
 
   const updateDestination = async (id: string, dest: Destination) => {
-    await setDoc(doc(db, "destinations", id), dest);
+    setDestinations(prev => prev.map(d => d.id === id ? dest : d)); // Optimistic
+    await setDoc(doc(db, "destinations", id), dest).catch(console.error);
     addLog(`Updated destination: ${dest.name}`);
   };
 
   const deleteDestination = async (id: string) => {
     const dest = destinations.find(d => d.id === id);
-    await deleteDoc(doc(db, "destinations", id));
+    setDestinations(prev => prev.filter(d => d.id !== id)); // Optimistic
+    await deleteDoc(doc(db, "destinations", id)).catch(console.error);
     if (dest) addLog(`Deleted destination: ${dest.name}`);
   };
 
@@ -186,7 +192,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addContribution = async (dest: Destination) => {
-    await setDoc(doc(db, "pending_contributions", dest.id), dest);
+    setPendingContributions(prev => [dest, ...prev]);
+    await setDoc(doc(db, "pending_contributions", dest.id), dest).catch(e => {
+      console.error(e);
+      alert("Gagal mengirim kontribusi ke Database. Coba lagi nanti.");
+    });
     addLog(`Added new contribution: ${dest.name}`);
   };
 
@@ -194,8 +204,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const dest = pendingContributions.find(d => d.id === id);
     if (dest) {
       const finalDest = { ...dest, ...editedDest, status: "published" as const };
-      await setDoc(doc(db, "destinations", finalDest.id), finalDest);
-      await deleteDoc(doc(db, "pending_contributions", id));
+      setDestinations(prev => [finalDest, ...prev]);
+      setPendingContributions(prev => prev.filter(d => d.id !== id));
+      await setDoc(doc(db, "destinations", finalDest.id), finalDest).catch(console.error);
+      await deleteDoc(doc(db, "pending_contributions", id)).catch(console.error);
       addLog(`Approved contribution: ${finalDest.name}`);
     }
   };
@@ -203,7 +215,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const rejectContribution = async (id: string) => {
     const dest = pendingContributions.find(d => d.id === id);
     if (dest) {
-      await deleteDoc(doc(db, "pending_contributions", id));
+      setPendingContributions(prev => prev.filter(d => d.id !== id));
+      await deleteDoc(doc(db, "pending_contributions", id)).catch(console.error);
       addLog(`Rejected contribution: ${dest.name}`);
     }
   };
@@ -219,12 +232,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addAdmin = async (admin: AdminUser) => {
-    await setDoc(doc(db, "admins", admin.id), admin);
+    setAdmins(prev => [...prev, admin]);
+    await setDoc(doc(db, "admins", admin.id), admin).catch(e => {
+      console.error(e);
+      alert("Peringatan: Gagal menyimpan Admin ke Database. Periksa Firebase Security Rules Anda!");
+    });
     addLog(`Added new admin: ${admin.username}`);
   };
 
   const deleteAdmin = async (id: string) => {
-    await deleteDoc(doc(db, "admins", id));
+    setAdmins(prev => prev.filter(a => a.id !== id));
+    await deleteDoc(doc(db, "admins", id)).catch(console.error);
     addLog(`Deleted admin ID: ${id}`);
   };
 
