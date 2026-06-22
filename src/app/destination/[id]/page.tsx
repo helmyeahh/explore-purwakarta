@@ -9,6 +9,14 @@ import { notFound, useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 
+const extractIframeSrc = (input: string) => {
+  if (!input) return "";
+  if (input.trim().toLowerCase().startsWith("<iframe")) {
+    const match = input.match(/src=["']([^"']+)["']/);
+    if (match && match[1]) return match[1];
+  }
+  return input;
+};
 export default function DestinationPage() {
   const params = useParams() as { id: string };
   const router = useRouter();
@@ -66,7 +74,7 @@ export default function DestinationPage() {
       <section className="relative bg-forest-dark w-full aspect-4/3 md:aspect-21/9 overflow-hidden z-10">
         {destination.interactive?.vr_link ? (
           <iframe 
-            src={destination.interactive.vr_link}
+            src={extractIframeSrc(destination.interactive.vr_link)}
             className="w-full h-full border-0" 
             allowFullScreen 
             loading="lazy" 
